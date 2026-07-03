@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ledger — Expense Tracker</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Special+Elite&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F7F4EC;
+    --paper-2:#EFEADB;
+    --ink:#1F2A24;
+    --ink-soft:#4B5750;
+    --ledger:#2F5233;
+    --ledger-dark:#203A24;
+    --red:#A8412E;
+    --gold:#B8892B;
+    --rule:#D9D2BC;
+    --white:#FFFDF8;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:960px;margin:0 auto;padding:28px 20px 60px;}
+
+  /* Header */
+  .masthead{
+    display:flex;justify-content:space-between;align-items:flex-end;
+    border-bottom:3px double var(--ink);
+    padding-bottom:14px;margin-bottom:22px;
+  }
+  .masthead h1{
+    font-family:'Special Elite',monospace;
+    font-size:30px;letter-spacing:0.5px;margin:0;color:var(--ledger-dark);
+  }
+  .masthead .sub{font-size:12px;color:var(--ink-soft);letter-spacing:1.5px;text-transform:uppercase;margin-top:4px;}
+  .masthead .date{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-soft);text-align:right;}
+
+  /* Tabs styled as ledger index tabs */
+  .tabs{display:flex;gap:2px;margin-bottom:0;}
+  .tab{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;letter-spacing:0.5px;text-transform:uppercase;
+    padding:10px 16px;cursor:pointer;color:var(--ink-soft);
+    background:var(--paper-2);border:1px solid var(--rule);border-bottom:none;
+    border-radius:6px 6px 0 0;user-select:none;
+  }
+  .tab.active{background:var(--white);color:var(--ledger-dark);font-weight:600;border-color:var(--ink);}
+  .panel{
+    background:var(--white);border:1px solid var(--ink);border-radius:0 6px 6px 6px;
+    padding:24px;min-height:340px;
+  }
+  .panel h2{
+    font-family:'Special Elite',monospace;font-size:16px;color:var(--ledger-dark);
+    margin:0 0 16px;text-transform:uppercase;letter-spacing:0.5px;
+  }
+
+  /* Form */
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;}
+  .field{display:flex;flex-direction:column;gap:5px;}
+  .field label{font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--ink-soft);}
+  .field input,.field select{
+    font-family:'IBM Plex Mono',monospace;font-size:14px;
+    padding:9px 10px;border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink);
+  }
+  .field input:focus,.field select:focus{outline:2px solid var(--ledger);outline-offset:1px;border-color:var(--ledger);}
+  .btn{
+    font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;letter-spacing:0.5px;
+    padding:10px 18px;border-radius:4px;border:1px solid var(--ledger-dark);cursor:pointer;
+    background:var(--ledger);color:var(--white);text-transform:uppercase;
+  }
+  .btn:hover{background:var(--ledger-dark);}
+  .btn.secondary{background:var(--paper);color:var(--ink);border-color:var(--rule);}
+  .btn.secondary:hover{border-color:var(--ink);}
+  .btn.danger{background:var(--white);color:var(--red);border-color:var(--red);}
+  .btn.danger:hover{background:var(--red);color:var(--white);}
+  .row-actions{display:flex;gap:8px;}
+
+  /* Ledger table */
+  table{width:100%;border-collapse:collapse;font-family:'IBM Plex Mono',monospace;font-size:13px;}
+  thead th{
+    text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--ink-soft);
+    border-bottom:2px solid var(--ink);padding:0 8px 8px;
+  }
+  tbody td{padding:10px 8px;border-bottom:1px solid var(--rule);}
+  tbody tr:hover{background:var(--paper-2);}
+  td.amt{text-align:right;font-weight:600;}
+  td.actions{text-align:right;white-space:nowrap;}
+  .icon-btn{
+    background:none;border:none;cursor:pointer;font-family:'IBM Plex Mono',monospace;
+    font-size:12px;color:var(--ink-soft);text-decoration:underline;padding:2px 4px;
+  }
+  .icon-btn.del{color:var(--red);}
+  .empty{color:var(--ink-soft);font-style:italic;padding:20px 0;font-family:'Inter';font-size:13px;}
+  .tag{
+    display:inline-block;font-size:10px;padding:2px 7px;border-radius:10px;
+    background:var(--paper-2);border:1px solid var(--rule);color:var(--ink-soft);text-transform:uppercase;
+  }
+
+  /* Reports controls */
+  .report-controls{display:flex;gap:10px;align-items:flex-end;margin-bottom:18px;flex-wrap:wrap;}
+  .total-line{
+    display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;
+    font-size:15px;font-weight:700;border-top:2px solid var(--ink);padding-top:10px;margin-top:8px;
+  }
+
+  /* Dashboard */
+  .dash-grid{display:grid;grid-template-columns:1.1fr 0.9fr;gap:24px;}
+  .stat-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;}
+  .stat-card{border:1px solid var(--rule);border-radius:6px;padding:14px;}
+  .stat-card .label{font-size:10px;text-transform:uppercase;letter-spacing:0.6px;color:var(--ink-soft);}
+  .stat-card .value{font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:700;margin-top:4px;color:var(--ledger-dark);}
+  .stat-card.high .value{color:var(--red);}
+  .stat-card.low .value{color:var(--ledger);}
+  .cat-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-family:'IBM Plex Mono',monospace;font-size:12px;}
+  .cat-bar-row .cat-name{width:110px;flex-shrink:0;color:var(--ink-soft);}
+  .cat-bar-track{flex:1;background:var(--paper-2);border-radius:3px;height:10px;overflow:hidden;}
+  .cat-bar-fill{height:100%;background:var(--ledger);}
+  .cat-bar-amt{width:80px;text-align:right;flex-shrink:0;}
+
+  /* Receipt tape — signature element */
+  .receipt{
+    background:var(--white);
+    border:1px solid var(--rule);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    padding:20px 18px;
+    position:relative;
+    box-shadow:0 2px 10px rgba(31,42,36,0.06);
+  }
+  .receipt::before,.receipt::after{
+    content:"";position:absolute;left:0;right:0;height:10px;
+    background-image:radial-gradient(circle at 8px 0, transparent 5px, var(--paper) 5.5px);
+    background-size:16px 10px;background-repeat:repeat-x;
+  }
+  .receipt::before{top:-9px;}
+  .receipt::after{bottom:-9px;transform:rotate(180deg);}
+  .receipt h3{
+    text-align:center;font-family:'Special Elite',monospace;font-size:14px;
+    margin:0 0 4px;letter-spacing:1px;color:var(--ledger-dark);
+  }
+  .receipt .rsub{text-align:center;font-size:10px;color:var(--ink-soft);margin-bottom:14px;letter-spacing:1px;}
+  .receipt .rline{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px dashed var(--rule);}
+  .receipt .rline.grand{border-top:1px solid var(--ink);border-bottom:none;margin-top:8px;padding-top:10px;font-weight:700;font-size:14px;}
+  .receipt .stub{text-align:center;font-size:10px;color:var(--ink-soft);margin-top:14px;letter-spacing:1px;}
+
+  .toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+    background:var(--ledger-dark);color:var(--white);padding:10px 20px;border-radius:6px;
+    font-family:'IBM Plex Mono',monospace;font-size:12.5px;opacity:0;pointer-events:none;
+    transition:opacity 0.25s ease, transform 0.25s ease;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(-6px);}
+
+  @media(max-width:680px){
+    .form-grid{grid-template-columns:1fr;}
+    .dash-grid{grid-template-columns:1fr;}
+    .stat-cards{grid-template-columns:1fr;}
+    .tabs{flex-wrap:wrap;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="masthead">
+    <div>
+      <h1>The Ledger</h1>
+      <div class="sub">Personal Expense Tracker</div>
+    </div>
+    <div class="date" id="todayDate"></div>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <div class="tab active" data-tab="add">Add Entry</div>
+    <div class="tab" data-tab="all">All Entries</div>
+    <div class="tab" data-tab="reports">Reports</div>
+    <div class="tab" data-tab="dashboard">Dashboard</div>
+  </div>
+
+  <div class="panel" id="panel"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------------- Data layer (mirrors ArrayList + HashMap logic) ---------------- */
+let counter = 1;
+let expenses = []; // ArrayList<Expense> equivalent
+const categoryList = ["Food","Travel","Bills","Entertainment","Health","Shopping","Other"];
+
+function categoryMap(){ // HashMap<String, List<Expense>> equivalent, built on demand
+  const map = {};
+  for(const e of expenses){
+    if(!map[e.category]) map[e.category] = [];
+    map[e.category].push(e);
+  }
+  return map;
+}
+
+function addExpense(title, amount, category, date){
+  const e = { id: "EXP" + String(counter++).padStart(3,"0"), title, amount, category, date };
+  expenses.push(e);
+  return e;
+}
+function updateExpense(id, title, amount, category, date){
+  const e = expenses.find(x=>x.id===id);
+  if(!e) return false;
+  Object.assign(e,{title,amount,category,date});
+  return true;
+}
+function deleteExpense(id){
+  const idx = expenses.findIndex(x=>x.id===id);
+  if(idx===-1) return false;
+  expenses.splice(idx,1);
+  return true;
+}
+function fmt(n){ return "Rs." + Number(n).toFixed(2); }
+function sortedByDateDesc(list){ return [...list].sort((a,b)=> b.date.localeCompare(a.date)); }
+function highest(){ if(!expenses.length) return null; return expenses.reduce((a,b)=> b.amount>a.amount?b:a); }
+function lowest(){ if(!expenses.length) return null; return expenses.reduce((a,b)=> b.amount<a.amount?b:a); }
+
+/* ---------------- Seed sample data ---------------- */
+addExpense("Groceries",1500,"Food","2026-06-05");
+addExpense("Movie Night",750,"Entertainment","2026-06-10");
+addExpense("Electricity Bill",2200,"Bills","2026-06-15");
+addExpense("Coffee",150,"Food","2026-07-01");
+
+/* ---------------- UI ---------------- */
+const panel = document.getElementById('panel');
+let activeTab = 'add';
+let editingId = null;
+
+document.getElementById('todayDate').textContent = new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+
+document.getElementById('tabs').addEventListener('click', (e)=>{
+  const t = e.target.closest('.tab');
+  if(!t) return;
+  activeTab = t.dataset.tab;
+  editingId = null;
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active', x===t));
+  render();
+});
+
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(()=> el.classList.remove('show'), 1800);
+}
+
+function categoryOptions(selected){
+  return categoryList.map(c=> `<option value="${c}" ${c===selected?'selected':''}>${c}</option>`).join('');
+}
+
+function render(){
+  if(activeTab==='add') return renderAdd();
+  if(activeTab==='all') return renderAll();
+  if(activeTab==='reports') return renderReports();
+  if(activeTab==='dashboard') return renderDashboard();
+}
+
+/* ---- Add / Edit ---- */
+function renderAdd(){
+  const editing = editingId ? expenses.find(x=>x.id===editingId) : null;
+  panel.innerHTML = `
+    <h2>${editing? 'Update Entry — '+editing.id : 'New Entry'}</h2>
+    <div class="form-grid">
+      <div class="field"><label>Title</label><input id="f-title" type="text" value="${editing?editing.title:''}" placeholder="e.g. Groceries"></div>
+      <div class="field"><label>Amount (Rs.)</label><input id="f-amount" type="number" step="0.01" value="${editing?editing.amount:''}" placeholder="0.00"></div>
+      <div class="field"><label>Category</label><select id="f-category">${categoryOptions(editing?editing.category:'Food')}</select></div>
+      <div class="field"><label>Date</label><input id="f-date" type="date" value="${editing?editing.date: new Date().toISOString().slice(0,10)}"></div>
+    </div>
+    <div class="row-actions">
+      <button class="btn" id="saveBtn">${editing?'Save Changes':'Add Entry'}</button>
+      ${editing? '<button class="btn secondary" id="cancelBtn">Cancel</button>' : ''}
+    </div>
+  `;
+  document.getElementById('saveBtn').onclick = ()=>{
+    const title = document.getElementById('f-title').value.trim();
+    const amount = parseFloat(document.getElementById('f-amount').value);
+    const category = document.getElementById('f-category').value;
+    const date = document.getElementById('f-date').value;
+    if(!title || isNaN(amount) || amount<=0 || !date){ toast('Fill in all fields with a valid amount.'); return; }
+    if(editing){
+      updateExpense(editing.id, title, amount, category, date);
+      toast('Updated ' + editing.id);
+      editingId = null;
+    } else {
+      const e = addExpense(title, amount, category, date);
+      toast('Added ' + e.id);
+    }
+    activeTab = 'all';
+    document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active', x.dataset.tab==='all'));
+    render();
+  };
+  const cancelBtn = document.getElementById('cancelBtn');
+  if(cancelBtn) cancelBtn.onclick = ()=>{ editingId=null; render(); };
+}
+
+/* ---- All entries ---- */
+function renderAll(){
+  const list = sortedByDateDesc(expenses);
+  panel.innerHTML = `
+    <h2>All Entries (latest first)</h2>
+    ${list.length===0 ? '<div class="empty">No expenses recorded yet. Add one from "Add Entry".</div>' : `
+    <table>
+      <thead><tr><th>ID</th><th>Title</th><th>Category</th><th>Date</th><th style="text-align:right">Amount</th><th></th></tr></thead>
+      <tbody>
+        ${list.map(e=>`
+          <tr>
+            <td>${e.id}</td>
+            <td>${e.title}</td>
+            <td><span class="tag">${e.category}</span></td>
+            <td>${e.date}</td>
+            <td class="amt">${fmt(e.amount)}</td>
+            <td class="actions">
+              <button class="icon-btn" onclick="editRow('${e.id}')">edit</button>
+              <button class="icon-btn del" onclick="removeRow('${e.id}')">delete</button>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`}
+  `;
+}
+window.editRow = (id)=>{
+  editingId = id;
+  activeTab = 'add';
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active', x.dataset.tab==='add'));
+  render();
+};
+window.removeRow = (id)=>{
+  if(deleteExpense(id)){ toast('Deleted ' + id); render(); }
+};
+
+/* ---- Reports ---- */
+let reportMode = 'monthly';
+let reportMonth = new Date().getMonth()+1;
+let reportYear = new Date().getFullYear();
+let reportCategory = categoryList[0];
+
+function renderReports(){
+  panel.innerHTML = `
+    <h2>Reports</h2>
+    <div class="report-controls">
+      <div class="field">
+        <label>Report type</label>
+        <select id="r-mode">
+          <option value="monthly" ${reportMode==='monthly'?'selected':''}>Monthly</option>
+          <option value="category" ${reportMode==='category'?'selected':''}>Category</option>
+        </select>
+      </div>
+      <div id="r-extra"></div>
+    </div>
+    <div id="r-results"></div>
+  `;
+  const extra = document.getElementById('r-extra');
+  document.getElementById('r-mode').onchange = (e)=>{ reportMode = e.target.value; renderReports(); };
+
+  if(reportMode==='monthly'){
+    extra.innerHTML = `
+      <div class="field"><label>Month</label>
+        <select id="r-month">${Array.from({length:12},(_,i)=>i+1).map(m=>`<option value="${m}" ${m==reportMonth?'selected':''}>${String(m).padStart(2,'0')}</option>`).join('')}</select>
+      </div>
+      <div class="field"><label>Year</label><input id="r-year" type="number" value="${reportYear}" style="width:90px"></div>
+    `;
+    document.getElementById('r-month').onchange = e=>{ reportMonth=+e.target.value; showReportResults(); };
+    document.getElementById('r-year').onchange = e=>{ reportYear=+e.target.value; showReportResults(); };
+  } else {
+    extra.innerHTML = `<div class="field"><label>Category</label><select id="r-cat">${categoryOptions(reportCategory)}</select></div>`;
+    document.getElementById('r-cat').onchange = e=>{ reportCategory=e.target.value; showReportResults(); };
+  }
+  showReportResults();
+}
+
+function showReportResults(){
+  let list, title;
+  if(reportMode==='monthly'){
+    list = expenses.filter(e=>{
+      const [y,m] = e.date.split('-').map(Number);
+      return m===reportMonth && y===reportYear;
+    });
+    title = `${String(reportMonth).padStart(2,'0')}/${reportYear}`;
+  } else {
+    const map = categoryMap();
+    list = map[reportCategory] || [];
+    title = reportCategory;
+  }
+  list = sortedByDateDesc(list);
+  const total = list.reduce((s,e)=>s+e.amount,0);
+  document.getElementById('r-results').innerHTML = `
+    ${list.length===0 ? `<div class="empty">No entries for ${title}.</div>` : `
+    <table>
+      <thead><tr><th>ID</th><th>Title</th><th>Category</th><th>Date</th><th style="text-align:right">Amount</th></tr></thead>
+      <tbody>
+        ${list.map(e=>`<tr><td>${e.id}</td><td>${e.title}</td><td><span class="tag">${e.category}</span></td><td>${e.date}</td><td class="amt">${fmt(e.amount)}</td></tr>`).join('')}
+      </tbody>
+    </table>
+    <div class="total-line"><span>Total — ${title}</span><span>${fmt(total)}</span></div>`}
+  `;
+}
+
+/* ---- Dashboard ---- */
+function renderDashboard(){
+  const total = expenses.reduce((s,e)=>s+e.amount,0);
+  const high = highest();
+  const low = lowest();
+  const map = categoryMap();
+  const cats = Object.keys(map).sort();
+  const maxCatTotal = Math.max(1, ...cats.map(c=> map[c].reduce((s,e)=>s+e.amount,0)));
+
+  panel.innerHTML = `
+    <h2>Dashboard</h2>
+    <div class="dash-grid">
+      <div>
+        <div class="stat-cards">
+          <div class="stat-card"><div class="label">Entries</div><div class="value">${expenses.length}</div></div>
+          <div class="stat-card"><div class="label">Total Spent</div><div class="value">${fmt(total)}</div></div>
+          <div class="stat-card high"><div class="label">Highest</div><div class="value">${high?fmt(high.amount):'—'}</div></div>
+          <div class="stat-card low"><div class="label">Lowest</div><div class="value">${low?fmt(low.amount):'—'}</div></div>
+        </div>
+        <h2 style="margin-top:22px;">Category Breakdown</h2>
+        ${cats.length===0? '<div class="empty">No data yet.</div>' : cats.map(c=>{
+          const t = map[c].reduce((s,e)=>s+e.amount,0);
+          const pct = Math.round((t/maxCatTotal)*100);
+          return `<div class="cat-bar-row">
+            <div class="cat-name">${c}</div>
+            <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${pct}%"></div></div>
+            <div class="cat-bar-amt">${fmt(t)}</div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div class="receipt">
+        <h3>Ledger Receipt</h3>
+        <div class="rsub">${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</div>
+        ${cats.map(c=> `<div class="rline"><span>${c}</span><span>${fmt(map[c].reduce((s,e)=>s+e.amount,0))}</span></div>`).join('')}
+        <div class="rline grand"><span>TOTAL</span><span>${fmt(total)}</span></div>
+        <div class="stub">*** ${expenses.length} ENTRIES ON RECORD ***</div>
+      </div>
+    </div>
+  `;
+}
+
+render();
+</script>
+</body>
+</html>
