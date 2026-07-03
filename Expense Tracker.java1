@@ -1,0 +1,116 @@
+import java.time.LocalDate;
+import java.util.*;
+import java.util.stream.Collectors;
+
+public class ExpenseTracker {
+
+    // Master list -> preserves insertion order, used for full listing/reports
+    private ArrayList<Expense> expenseList = new ArrayList<>();
+
+    // Category index -> O(1) lookup for category-wise reports
+    private HashMap<String, List<Expense>> categoryMap = new HashMap<>();
+
+    // ---------------- ADD ----------------
+    public Expense addExpense(String title, double amount, String category, LocalDate date) {
+        Expense e = new Expense(title, amount, category, date);
+        expenseList.add(e);
+        categoryMap.computeIfAbsent(category, k -> new ArrayList<>()).add(e);
+        return e;
+    }
+
+    // ---------------- UPDATE ----------------
+    public boolean updateExpense(String id, String title, double amount, String category, LocalDate date) {
+        for (Expense e : expenseList) {
+            if (e.getId().equalsIgnoreCase(id)) {
+                // remove from old category bucket first
+                categoryMap.get(e.getCategory()).remove(e);
+
+                e.setTitle(title);
+                e.setAmount(amount);
+                e.setCategory(category);
+                e.setDate(date);
+
+                categoryMap.computeIfAbsent(category, k -> new ArrayList<>()).add(e);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // ---------------- DELETE ----------------
+    public boolean deleteExpense(String id) {
+        Expense target = findById(id);
+        if (target == null) return false;
+        expenseList.remove(target);
+        categoryMap.get(target.getCategory()).remove(target);
+        return true;
+    }
+
+    private Expense findById(String id) {
+        for (Expense e : expenseList) {
+            if (e.getId().equalsIgnoreCase(id)) return e;
+        }
+        return null;
+    }
+
+    // ---------------- VIEW ALL (sorted by date, latest first) ----------------
+    public List<Expense> getAllExpenses() {
+        List<Expense> copy = new ArrayList<>(expenseList);
+        Collections.sort(copy, Comparator.comparing(Expense::getDate).reversed());
+        return copy;
+    }
+
+    // ---------------- MONTHLY REPORT ----------------
+    public List<Expense> getMonthlyReport(int month, int year) {
+        return expenseList.stream()
+                .filter(e -> e.getDate().getMonthValue() == month && e.getDate().getYear() == year)
+                .collect(Collectors.toList());
+    }
+
+    public double getMonthlyTotal(int month, int year) {
+        return getMonthlyReport(month, year).stream().mapToDouble(Expense::getAmount).sum();
+    }
+
+    // ---------------- CATEGORY REPORT ----------------
+    public List<Expense> getCategoryReport(String category) {
+        return categoryMap.getOrDefault(category, Collections.emptyList());
+    }
+
+    public double getCategoryTotal(String category) {
+        return getCategoryReport(category).stream().mapToDouble(Expense::getAmount).sum();
+    }
+
+    // ---------------- HIGHEST / LOWEST ----------------
+    public Expense getHighestExpense() {
+        if (expenseList.isEmpty()) return null;
+        return Collections.max(expenseList, Comparator.comparingDouble(Expense::getAmount));
+    }
+
+    public Expense getLowestExpense() {
+        if (expenseList.isEmpty()) return null;
+        return Collections.min(expenseList, Comparator.comparingDouble(Expense::getAmount));
+    }
+
+    // ---------------- DASHBOARD ----------------
+    public void showDashboard() {
+        double total = expenseList.stream().mapToDouble(Expense::getAmount).sum();
+        System.out.println("\n===== DASHBOARD =====");
+        System.out.println("Total Expenses Recorded : " + expenseList.size());
+        System.out.printf("Total Amount Spent       : Rs.%.2f%n", total);
+
+        Expense high = getHighestExpense();
+        Expense low = getLowestExpense();
+        System.out.println("Highest Expense          : " + (high != null ? high : "N/A"));
+        System.out.println("Lowest Expense            : " + (low != null ? low : "N/A"));
+
+        System.out.println("\nCategory-wise Totals:");
+        // sort categories alphabetically for consistent output
+        List<String> categories = new ArrayList<>(categoryMap.keySet());
+        Collections.sort(categories);
+        for (String cat : categories) {
+            double catTotal = getCategoryTotal(cat);
+            System.out.printf("  %-10s : Rs.%.2f (%d items)%n", cat, catTotal, categoryMap.get(cat).size());
+        }
+        System.out.println("======================\n");
+    }
+}
