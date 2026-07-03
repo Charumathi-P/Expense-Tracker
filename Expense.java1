@@ -1,0 +1,36 @@
+import java.time.LocalDate;
+
+public class Expense {
+    private static int counter = 1;
+
+    private String id;
+    private String title;
+    private double amount;
+    private String category;
+    private LocalDate date;
+
+    public Expense(String title, double amount, String category, LocalDate date) {
+        this.id = "EXP" + String.format("%03d", counter++);
+        this.title = title;
+        this.amount = amount;
+        this.category = category;
+        this.date = date;
+    }
+
+    public String getId() { return id; }
+    public String getTitle() { return title; }
+    public double getAmount() { return amount; }
+    public String getCategory() { return category; }
+    public LocalDate getDate() { return date; }
+
+    public void setTitle(String title) { this.title = title; }
+    public void setAmount(double amount) { this.amount = amount; }
+    public void setCategory(String category) { this.category = category; }
+    public void setDate(LocalDate date) { this.date = date; }
+
+    @Override
+    public String toString() {
+        return String.format("%-8s | %-15s | Rs.%-10.2f | %-10s | %s",
+                id, title, amount, category, date);
+    }
+}
